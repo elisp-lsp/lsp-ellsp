@@ -39,45 +39,25 @@
   :group 'tool
   :link '(url-link :tag "Repository" "https://github.com/elisp-lsp/lsp-ellsp"))
 
-(defun lsp-ellsp--home-dir ()
-  "Return the home directory."
-  (pcase system-type
-    (`windows-nt (expand-file-name (getenv "USERPROFILE")))
-    (_           (expand-file-name "~/"))))
-
 (defun lsp-ellsp--executable ()
   "Return the language server executable name."
   (pcase system-type
     (`windows-nt "ellsp.exe")
     (_           "ellsp")))
 
-(defun lsp-ellsp--has-server-installed-p (root)
-  "Return true if server is installed under ROOT."
-  (let ((dot-eask (expand-file-name ".eask" root)))
-    (directory-files-recursively dot-eask (lsp-ellsp--executable))))
+(add-to-list 'lsp-language-id-configuration '(emacs-lisp-mode . "emacs-lisp"))
 
 (lsp-register-client
  (make-lsp-client
   :new-connection
   (lsp-stdio-connection
    (lambda ()
-     (cond
-      ;; Try project scope.
-      ((let* ((root (locate-dominating-file (buffer-file-name) "Eask")))
-         (lsp-ellsp--has-server-installed-p root))
-       (list "eask" "exec" (lsp-ellsp--executable)))
-      ;; Try global scope.
-      ((let* ((home-eask (expand-file-name "Eask" (lsp-ellsp--home-dir)))
-              (root (locate-dominating-file home-eask "Eask")))
-         (lsp-ellsp--has-server-installed-p root))
-       (list "eask" "-g" "exec" (lsp-ellsp--executable)))
-      ;; Report error.
-      (t (error "Ellsp Language Server can only run with Eask")))))
+     (cond ((locate-dominating-file (buffer-file-name) "Eask")
+            (list "eask" "exec" (lsp-ellsp--executable)))
+           (t (error "Ellsp Language Server can only run with Eask")))))
   :major-modes '( emacs-lisp-mode)
   :priority 1
   :server-id 'ellsp))
-
-(add-to-list 'lsp-language-id-configuration '(emacs-lisp-mode . "emacs-lisp"))
 
 (provide 'lsp-ellsp)
 ;;; lsp-ellsp.el ends here
